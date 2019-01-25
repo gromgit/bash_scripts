@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+DATEH_DEFAULT_FORMAT="${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}"
+
+# human_date [<date command options>]
+human_date() {
+  local date_args=("${@:1:$(($# - 1))}") format_spec="${@: -1}" h_date h_week h_month h_year
+  local date_secs=$(command date -u "${date_args[@]}" +%s) now_secs=$(command date -u +%s)
+
+  ### RELATIVE DAYS
+  local date_days=$((date_secs / 86400)) now_days=$((now_secs / 86400))
+  # Let's first take care of the immediate past, present, and future
+  if [[ $date_days -eq $((now_days - 1)) ]]; then
+    # "yesterday"
+    h_date="yesterday"
+  elif [[ $date_days -eq $now_days ]]; then
+    # "today"
+    h_date="today"
+  elif [[ $date_days -eq $((now_days + 1)) ]]; then
+    # "tomorrow"
+    h_date="tomorrow"
+  else
+    # Now let's look at the difference in days
+    if (( date_days < now_days - 7 || date_days > now_days + 7 )); then
+      # Out of human date range, replace with normal date spec (default: YYYY-MM-DD)
+      h_date="$(command date -d@"${date_secs}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
+    elif (( date_days < now_days )); then
+      # last week
+      h_date="last $(command date -d @"${date_secs}" +%A)"
+    else
+      # next week
+      h_date="next $(command date -d @"${date_secs}" +%A)"
+    fi
+  fi
+  format_spec="${format_spec//@\{d\}/${h_date}}"
+
+  ### RELATIVE WEEKS
+  local date_weeks=$(((date_days + 3) / 7)) now_weeks=$(((now_days + 3) / 7))
+  h_week="$(relative_interval week $((date_weeks - now_weeks)))"
+  format_spec="${format_spec//@\{w\}/${h_week}}"
+
+  ### RELATIVE MONTHS & YEARS
+  [[ $(date -u "${date_args[@]}" +%Y-%m) =~ (.*)-(.*) ]] && local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}"
+  [[ $(date -u                   +%Y-%m) =~ (.*)-(.*) ]] && local now_year="${BASH_REMATCH[1]}" now_month="${BASH_REMATCH[2]}"
+  h_month="$(relative_interval month $(((date_year * 12 + date_month) - (now_year * 12 + now_month))))"
+  h_year="$(relative_interval year $((date_year - now_year)))"
+  format_spec="${format_spec//@\{m\}/${h_month}}"
+  format_spec="${format_spec//@\{y\}/${h_year}}"
+ 
+  # OK, now run the format_spec through GNU date for final result
+  command date -d @"${date_secs}" "${format_spec}"
+}
+
+# relative_interval <week|month|year> <interval_offset>
+relative_interval() {
+  case "$2" in
+    -1) echo "last ${1}";;
+     0) echo "this ${1}";;
+     1) echo "next ${1}";;
+     *) [[ $2 -lt 0 ]] && echo "${2#-} ${1}s ago" || echo "${2} ${1}s' time";;
+  esac
+}
+
+usage() {
+  cat <<EOF
+USAGE: $0 [OPTION]... [+FORMAT]
+   or: $0 [-u|--utc|--universal] [MMDDhhmm[[CC]YY][.ss]]
+Display the current time in the given FORMAT, or set the system date.
+
+NOTE: This replicates GNU date functionality, and adds the following
+format sequences:
+
+  @{d}  relative date (e.g. yesterday, next Friday), if computable
+        - else use \$DATEH_DEFAULT_FORMAT (default: $DATEH_DEFAULT_FORMAT)
+  @{w}  relative week (e.g. last week, 3 weeks' time)
+  @{m}  relative month (e.g. last month, 3 months' time)
+  @{y}  relative year (e.g. last year, 3 years' time)
+
+Examples:
+  $0
+  $0 -d "now" "+@{d} %X"
+  DATEH_DEFAULT_FORMAT=%m/%d/%Y $0 -d "last month" "+@{d}, @{w}, @{m}, @{y} %H:%M %P"
+EOF
+  if [[ $1 == long ]]; then
+    cat <<EOF
+
+..... GNU date help follows .....
+
+$(command date --help)
+EOF
+  else
+    cat <<EOF
+
+See date(1) man page or \`$0 --longhelp\` for GNU date format sequences.
+EOF
+  fi
+  exit 0
+}
+
+while true; do
+  case "$1" in
+    -h|--help) usage;;
+    -H|--longhelp) usage long;;
+    *) break;;
+  esac
+  shift
+done
+
+if [[ $# -eq 0 || "${@: -1}" != +*\@\{d*\}* ]]; then
+  # No human format specifier, just call "date" as normal
+  command date "$@"
+else
+  human_date "$@" 
+fi
