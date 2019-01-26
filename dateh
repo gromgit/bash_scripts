@@ -55,6 +55,8 @@ human_date() {
   format_spec="${format_spec//@\{D\}/${h_DATE:-${h_date}}}"
 
   ### RELATIVE WEEKS
+  # Weeks are counted from Unix epoch (midnight 1970-01-01),
+  # with midnight 1970-01-05 (Mon) being the start of week 1
   local date_weeks=$(((date_days + 3) / 7)) now_weeks=$(((now_days + 3) / 7))
   h_week="$(relative_interval week $((date_weeks - now_weeks)))"
   format_spec="${format_spec//@\{w\}/${h_week}}"
