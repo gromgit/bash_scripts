@@ -24,32 +24,31 @@ human_date() {
 
   ### RELATIVE DAYS
   local date_days=$((date_secs / 86400)) now_days=$((now_secs / 86400))
-  # Let's first take care of the immediate past, present, and future
-  if [[ $date_days -eq $((now_days - 1)) ]]; then
-    # "yesterday"
-    h_date="yesterday"
-  elif [[ $date_days -eq $now_days ]]; then
-    # "today"
-    h_date="today"
-  elif [[ $date_days -eq $((now_days + 1)) ]]; then
-    # "tomorrow"
-    h_date="tomorrow"
-  else
-    # Now let's look at the difference in days
-    if (( date_days < now_days - 7 || date_days > now_days + 7 )); then
+  # Now let's look at the difference in days
+  case $(( date_days - now_days )) in
+    -[2-7])
+      h_date="last $date_dow"
+      h_DATE="last $date_DOW"
+    ;;
+    -1)
+      h_date="yesterday"
+    ;;
+    0)
+      h_date="today"
+    ;;
+    1)
+      h_date="tomorrow"
+    ;;
+    [2-7])
+      h_date="next $date_dow"
+      h_DATE="next $date_DOW"
+    ;;
+    *)
       # Outside one week's range, we enable two different representations
       h_date="$(relative_interval day $((date_days - now_days)))"
       h_dateplus="$(date "${date_args[@]}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
-    elif (( date_days < now_days )); then
-      # last <dow>
-      h_date="last $date_dow"
-      h_DATE="last $date_DOW"
-    else
-      # next <dow>
-      h_date="next $date_dow"
-      h_DATE="next $date_DOW"
-    fi
-  fi
+    ;;
+  esac
   format_spec="${format_spec//@\{d\}/${h_date}}"
   format_spec="${format_spec//@\{d+\}/${h_dateplus:-${h_date}}}"
   format_spec="${format_spec//@\{D\}/${h_DATE:-${h_date}}}"
