@@ -22,13 +22,13 @@ human_date() {
     # Now let's look at the difference in days
     if (( date_days < now_days - 7 || date_days > now_days + 7 )); then
       # Out of human date range, replace with normal date spec (default: YYYY-MM-DD)
-      h_date="$(command date -d@"${date_secs}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
+      h_date="$(command date "${date_args[@]}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
     elif (( date_days < now_days )); then
       # last week
-      h_date="last $(command date -d @"${date_secs}" +%A)"
+      h_date="last $(command date "${date_args[@]}" +%A)"
     else
       # next week
-      h_date="next $(command date -d @"${date_secs}" +%A)"
+      h_date="next $(command date "${date_args[@]}" +%A)"
     fi
   fi
   format_spec="${format_spec//@\{d\}/${h_date}}"
@@ -39,15 +39,15 @@ human_date() {
   format_spec="${format_spec//@\{w\}/${h_week}}"
 
   ### RELATIVE MONTHS & YEARS
-  [[ $(date -u "${date_args[@]}" +%Y-%m) =~ (.*)-(.*) ]] && local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}"
-  [[ $(date -u                   +%Y-%m) =~ (.*)-(.*) ]] && local now_year="${BASH_REMATCH[1]}" now_month="${BASH_REMATCH[2]}"
+  [[ $(date "${date_args[@]}" +%Y-%m) =~ (.*)-(.*) ]] && local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}"
+  [[ $(date                   +%Y-%m) =~ (.*)-(.*) ]] && local now_year="${BASH_REMATCH[1]}" now_month="${BASH_REMATCH[2]}"
   h_month="$(relative_interval month $(((date_year * 12 + date_month) - (now_year * 12 + now_month))))"
   h_year="$(relative_interval year $((date_year - now_year)))"
   format_spec="${format_spec//@\{m\}/${h_month}}"
   format_spec="${format_spec//@\{y\}/${h_year}}"
  
   # OK, now run the format_spec through GNU date for final result
-  command date -d @"${date_secs}" "${format_spec}"
+  command date "${date_args[@]}" "${format_spec}"
 }
 
 # relative_interval <week|month|year> <interval_offset>
