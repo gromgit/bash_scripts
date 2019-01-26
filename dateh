@@ -4,7 +4,7 @@ DATEH_DEFAULT_FORMAT="${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}"
 # human_date [<date command options>]
 human_date() {
   local date_args=("${@:1:$(($# - 1))}") format_spec="${@: -1}" h_date h_week h_month h_year
-  local date_secs=$(command date -u "${date_args[@]}" +%s) now_secs=$(command date -u +%s)
+  local date_secs=$(date -u "${date_args[@]}" +%s) now_secs=$(date -u +%s)
 
   ### RELATIVE DAYS
   local date_days=$((date_secs / 86400)) now_days=$((now_secs / 86400))
@@ -22,13 +22,13 @@ human_date() {
     # Now let's look at the difference in days
     if (( date_days < now_days - 7 || date_days > now_days + 7 )); then
       # Out of human date range, replace with normal date spec (default: YYYY-MM-DD)
-      h_date="$(command date "${date_args[@]}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
+      h_date="$(date "${date_args[@]}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
     elif (( date_days < now_days )); then
       # last week
-      h_date="last $(command date "${date_args[@]}" +%A)"
+      h_date="last $(date "${date_args[@]}" +%A)"
     else
       # next week
-      h_date="next $(command date "${date_args[@]}" +%A)"
+      h_date="next $(date "${date_args[@]}" +%A)"
     fi
   fi
   format_spec="${format_spec//@\{d\}/${h_date}}"
@@ -47,7 +47,7 @@ human_date() {
   format_spec="${format_spec//@\{y\}/${h_year}}"
  
   # OK, now run the format_spec through GNU date for final result
-  command date "${date_args[@]}" "${format_spec}"
+  date "${date_args[@]}" "${format_spec}"
 }
 
 # relative_interval <week|month|year> <interval_offset>
@@ -85,7 +85,7 @@ EOF
 
 ..... GNU date help follows .....
 
-$(command date --help)
+$(date --help)
 EOF
   else
     cat <<EOF
@@ -107,7 +107,7 @@ done
 
 if [[ $# -eq 0 || "${@: -1}" != +*\@\{d*\}* ]]; then
   # No human format specifier, just call "date" as normal
-  command date "$@"
+  date "$@"
 else
   human_date "$@" 
 fi
