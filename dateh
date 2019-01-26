@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
 DATEH_DEFAULT_FORMAT="${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}"
+short_ordinals=(invalid 1st 2nd 3rd 4th 5th 6th 7th 8th 9th 10th 11th
+12th 13th 14th 15th 16th 17th 18th 19th 20th 21st 22nd 23rd 24th 25th
+26th 27th 28th 29th 30th 31st)
+long_ordinals=(invalid first second third fourth fifth sixth seventh
+eighth ninth tenth eleventh twelfth thirteenth fourteenth fifteenth
+sixteenth seventeenth eighteenth nineteenth twentieth twenty-first
+twenty-second twenty-third twenty-fourth twenty-fifth twenty-sixth
+twenty-seventh twenty-eighth twenty-ninth thirtieth thirty-first)
 
 # human_date [<date command options>]
 human_date() {
   local date_args=("${@:1:$(($# - 1))}") format_spec="${@: -1}" h_date h_week h_month h_year
   local date_secs=$(date -u "${date_args[@]}" +%s) now_secs=$(date -u +%s)
+  [[ $(date "${date_args[@]}" +%Y-%m-%d) =~ (.*)-(.*)-(.*) ]] &&
+    local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}" date_dom="${BASH_REMATCH[3]}"
+  [[ $(date +%Y-%m) =~ (.*)-(.*) ]] && local now_year="${BASH_REMATCH[1]}" now_month="${BASH_REMATCH[2]}"
+
+  ### ORDINAL DAYS OF MONTH
+  format_spec="${format_spec//@\{o\}/${short_ordinals[${date_dom##0}]}}"
+  format_spec="${format_spec//@\{O\}/${long_ordinals[${date_dom##0}]}}"
 
   ### RELATIVE DAYS
   local date_days=$((date_secs / 86400)) now_days=$((now_secs / 86400))
@@ -39,8 +54,6 @@ human_date() {
   format_spec="${format_spec//@\{w\}/${h_week}}"
 
   ### RELATIVE MONTHS & YEARS
-  [[ $(date "${date_args[@]}" +%Y-%m) =~ (.*)-(.*) ]] && local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}"
-  [[ $(date                   +%Y-%m) =~ (.*)-(.*) ]] && local now_year="${BASH_REMATCH[1]}" now_month="${BASH_REMATCH[2]}"
   h_month="$(relative_interval month $(((date_year * 12 + date_month) - (now_year * 12 + now_month))))"
   h_year="$(relative_interval year $((date_year - now_year)))"
   format_spec="${format_spec//@\{m\}/${h_month}}"
@@ -74,10 +87,13 @@ format sequences:
   @{w}  relative week (e.g. last week, 3 weeks' time)
   @{m}  relative month (e.g. last month, 3 months' time)
   @{y}  relative year (e.g. last year, 3 years' time)
+  @{o}  short ordinal day of month (e.g. 1st, 25th)
+  @{O}  long ordinal day of month (e.g. first, twenty-fifth)
 
 Examples:
   $0
   $0 -d "now" "+@{d} %X"
+  $0 -d "now + 3 weeks" "+the @{O} of %B, %Y"
   DATEH_DEFAULT_FORMAT=%m/%d/%Y $0 -d "last month" "+@{d}, @{w}, @{m}, @{y} %H:%M %P"
 EOF
   if [[ $1 == long ]]; then
