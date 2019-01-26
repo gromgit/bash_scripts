@@ -62,6 +62,20 @@ human_date() {
   h_year="$(relative_interval year $((date_year - now_year)))"
   format_spec="${format_spec//@\{m\}/${h_month}}"
   format_spec="${format_spec//@\{y\}/${h_year}}"
+
+  ### AUTO-SELECT
+  if [[ "$h_year" == [1-9]* ]]; then
+    h_auto="$h_year"
+  elif [[ "$h_month" == [1-9]* ]]; then
+    h_auto="$h_month"
+  elif [[ "$h_week" == [1-9]* ]]; then
+    h_auto="$h_week"
+  else
+    h_auto="$h_date"
+    h_AUTO="$h_DATE"
+  fi
+  format_spec="${format_spec//@\{h\}/${h_auto}}"
+  format_spec="${format_spec//@\{H\}/${h_AUTO:-${h_auto}}}"
  
   # OK, now run the format_spec through GNU date for final result
   date "${date_args[@]}" "${format_spec}"
@@ -93,6 +107,8 @@ format sequences:
   @{w}  relative week (e.g. last week, 3 weeks' time)
   @{m}  relative month (e.g. last month, 3 months' time)
   @{y}  relative year (e.g. last year, 3 years' time)
+  @{h}  auto-select relative representation (abbreviated day name)
+  @{H}  auto-select relative representation (full day name)
   @{o}  short ordinal day of month (e.g. 1st, 25th)
   @{O}  long ordinal day of month (e.g. first, twenty-fifth)
 
