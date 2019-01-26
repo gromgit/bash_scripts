@@ -13,8 +13,8 @@ twenty-seventh twenty-eighth twenty-ninth thirtieth thirty-first)
 human_date() {
   local date_args=("${@:1:$(($# - 1))}") format_spec="${@: -1}" h_date h_week h_month h_year
   local date_secs=$(date -u "${date_args[@]}" +%s) now_secs=$(date -u +%s)
-  [[ $(date "${date_args[@]}" +%Y-%m-%d) =~ (.*)-(.*)-(.*) ]] &&
-    local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}" date_dom="${BASH_REMATCH[3]}"
+  [[ $(date "${date_args[@]}" +%Y-%m-%d-%A) =~ (.*)-(.*)-(.*)-(.*) ]] &&
+    local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}" date_dom="${BASH_REMATCH[3]}" date_dow="${BASH_REMATCH[4]}"
   [[ $(date +%Y-%m) =~ (.*)-(.*) ]] && local now_year="${BASH_REMATCH[1]}" now_month="${BASH_REMATCH[2]}"
 
   ### ORDINAL DAYS OF MONTH
@@ -39,11 +39,11 @@ human_date() {
       # Out of human date range, replace with normal date spec (default: YYYY-MM-DD)
       h_date="$(date "${date_args[@]}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
     elif (( date_days < now_days )); then
-      # last week
-      h_date="last $(date "${date_args[@]}" +%A)"
+      # last <dow>
+      h_date="last $date_dow"
     else
-      # next week
-      h_date="next $(date "${date_args[@]}" +%A)"
+      # next <dow>
+      h_date="next $date_dow"
     fi
   fi
   format_spec="${format_spec//@\{d\}/${h_date}}"
