@@ -37,8 +37,9 @@ human_date() {
   else
     # Now let's look at the difference in days
     if (( date_days < now_days - 7 || date_days > now_days + 7 )); then
-      # Out of human date range, replace with normal date spec (default: YYYY-MM-DD)
-      h_date="$(date "${date_args[@]}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
+      # Outside one week's range, we enable two different representations
+      h_date="$(relative_interval day $((date_days - now_days)))"
+      h_dateplus="$(date "${date_args[@]}" +"${DATEH_DEFAULT_FORMAT:-%Y-%m-%d}")"
     elif (( date_days < now_days )); then
       # last <dow>
       h_date="last $date_dow"
@@ -50,6 +51,7 @@ human_date() {
     fi
   fi
   format_spec="${format_spec//@\{d\}/${h_date}}"
+  format_spec="${format_spec//@\{d+\}/${h_dateplus:-${h_date}}}"
   format_spec="${format_spec//@\{D\}/${h_DATE:-${h_date}}}"
 
   ### RELATIVE WEEKS
@@ -100,10 +102,10 @@ Display the current time in the given FORMAT, or set the system date.
 NOTE: This replicates GNU date functionality, and adds the following
 format sequences:
 
-  @{d}  relative date w/ abbreviated day name (e.g. yesterday, next Fri)
-  @{D}  relative date w/ full day name (e.g. yesterday, next Friday)
-  (NOTE: If relative date cannot be reasonably derived, it will be replaced
-         with \$DATEH_DEFAULT_FORMAT (default: $DATEH_DEFAULT_FORMAT))
+  @{d}  relative date w/ abbrev day name (e.g. yesterday, next Fri, 17 days ago)
+  @{D}  relative date w/ full day name (e.g. next Friday, 17 days' time)
+  @{d+} like @{d}, unless ref date exceeds now +/- 1 week, then use
+          \$DATEH_DEFAULT_FORMAT instead (default: $DATEH_DEFAULT_FORMAT))
   @{w}  relative week (e.g. last week, 3 weeks' time)
   @{m}  relative month (e.g. last month, 3 months' time)
   @{y}  relative year (e.g. last year, 3 years' time)
@@ -116,7 +118,8 @@ Examples:
   $0
   $0 -d "now" "+@{D} %X"
   $0 -d "now + 3 weeks" "+the @{O} of %B, %Y"
-  DATEH_DEFAULT_FORMAT=%m/%d/%Y $0 -d "last month" "+@{d}, @{w}, @{m}, @{y} %H:%M %P"
+  DATEH_DEFAULT_FORMAT=%m/%d/%Y $0 -d "last month" \\
+    "+@{d+}, @{w}, @{m}, @{y} %H:%M %P"
 EOF
   if [[ $1 == long ]]; then
     cat <<EOF
