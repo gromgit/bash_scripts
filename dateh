@@ -13,8 +13,9 @@ twenty-seventh twenty-eighth twenty-ninth thirtieth thirty-first)
 human_date() {
   local date_args=("${@:1:$(($# - 1))}") format_spec="${@: -1}" h_date h_week h_month h_year
   local date_secs=$(date -u "${date_args[@]}" +%s) now_secs=$(date -u +%s)
-  [[ $(date "${date_args[@]}" +%Y-%m-%d-%A) =~ (.*)-(.*)-(.*)-(.*) ]] &&
-    local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}" date_dom="${BASH_REMATCH[3]}" date_dow="${BASH_REMATCH[4]}"
+  [[ $(date "${date_args[@]}" +%Y-%m-%d-%a-%A) =~ (.*)-(.*)-(.*)-(.*)-(.*) ]] &&
+    local date_year="${BASH_REMATCH[1]}" date_month="${BASH_REMATCH[2]}" date_dom="${BASH_REMATCH[3]}" \
+          date_dow="${BASH_REMATCH[4]}" date_DOW="${BASH_REMATCH[5]}"
   [[ $(date +%Y-%m) =~ (.*)-(.*) ]] && local now_year="${BASH_REMATCH[1]}" now_month="${BASH_REMATCH[2]}"
 
   ### ORDINAL DAYS OF MONTH
@@ -41,12 +42,15 @@ human_date() {
     elif (( date_days < now_days )); then
       # last <dow>
       h_date="last $date_dow"
+      h_DATE="last $date_DOW"
     else
       # next <dow>
       h_date="next $date_dow"
+      h_DATE="next $date_DOW"
     fi
   fi
   format_spec="${format_spec//@\{d\}/${h_date}}"
+  format_spec="${format_spec//@\{D\}/${h_DATE:-${h_date}}}"
 
   ### RELATIVE WEEKS
   local date_weeks=$(((date_days + 3) / 7)) now_weeks=$(((now_days + 3) / 7))
@@ -82,8 +86,10 @@ Display the current time in the given FORMAT, or set the system date.
 NOTE: This replicates GNU date functionality, and adds the following
 format sequences:
 
-  @{d}  relative date (e.g. yesterday, next Friday), if computable
-        - else use \$DATEH_DEFAULT_FORMAT (default: $DATEH_DEFAULT_FORMAT)
+  @{d}  relative date w/ abbreviated day name (e.g. yesterday, next Fri)
+  @{D}  relative date w/ full day name (e.g. yesterday, next Friday)
+  (NOTE: If relative date cannot be reasonably derived, it will be replaced
+         with \$DATEH_DEFAULT_FORMAT (default: $DATEH_DEFAULT_FORMAT))
   @{w}  relative week (e.g. last week, 3 weeks' time)
   @{m}  relative month (e.g. last month, 3 months' time)
   @{y}  relative year (e.g. last year, 3 years' time)
@@ -92,7 +98,7 @@ format sequences:
 
 Examples:
   $0
-  $0 -d "now" "+@{d} %X"
+  $0 -d "now" "+@{D} %X"
   $0 -d "now + 3 weeks" "+the @{O} of %B, %Y"
   DATEH_DEFAULT_FORMAT=%m/%d/%Y $0 -d "last month" "+@{d}, @{w}, @{m}, @{y} %H:%M %P"
 EOF
