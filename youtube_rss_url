@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# USAGE: youtube_rss [<YouTube_URL> ...]
+usage() {
+  cat <<EOF && exit 1
+USAGE: $0 [<youtube_url> ...]
+
+Each URL must be associated with one of the following
+
+* channel:  youtube.com/channel/...
+* user:     youtube.com/user/...
+* playlist: youtube.com/...list=...
+
+No other links are supported at this time.
+EOF
+}
+
+while getopts ":h" opt; do
+  case "$opt" in
+    h) usage;;
+    \?) echo "Invalid option: -$OPTARG" >&2; exit 1;;
+    :) echo "Option -$OPTARG requires an argument" >&2; exit 1;;
+  esac
+done
+shift $(( OPTIND - 1 ))
+
+for u in "$@"; do
+  if [[ "$u" =~ .*youtube\.com/channel/([^/]+).* ]]; then
+    echo "https://www.youtube.com/feeds/videos.xml?channel_id=${BASH_REMATCH[1]}"
+  elif [[ "$u" =~ .*youtube\.com/user/([^/]+).* ]]; then
+    echo "https://www.youtube.com/feeds/videos.xml?user=${BASH_REMATCH[1]}"
+  elif [[ "$u" =~ .*youtube\.com.*list=([^&]+).* ]]; then
+    echo "https://www.youtube.com/feeds/videos.xml?playlist_id=${BASH_REMATCH[1]}"
+  else
+    echo "ERROR: Unrecognized URL '$u', skipping." >&2
+  fi
+done
