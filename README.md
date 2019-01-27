@@ -8,3 +8,8 @@ My collection of bash scripts, including:
   * converts YouTube URLs into corresponding URLs for your RSS feed reader
 
 Run `script_name -h` for documentation.
+
+## Related GitHub Repos
+
+* [dateh](https://github.com/gromgit/dateh): `date` for humans
+* [yt_podoff](https://github.com/gromgit/yt_podoff): A simple bash YouTube podcatcher
